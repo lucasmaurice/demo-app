@@ -5,6 +5,7 @@ from os import getenv
 from signal import raise_signal, SIGINT
 from socket import gethostname
 from yaml import dump
+from time import time
 
 app = Flask(__name__)
 
@@ -12,6 +13,8 @@ app = Flask(__name__)
 HOST = getenv("HOST", "0.0.0.0")
 PORT = int(getenv("PORT", "8080"))
 HOSTNAME = gethostname()
+
+STARTUP_TIME = time()
 
 # Configure the version file
 try:
@@ -102,8 +105,9 @@ def toggle_ready():
 # Toggle endpoint healthy/unhealthy
 @app.route("/alive")
 def toggle_alive():
-    global alive
+    global alive, ready
     alive = not alive
+    ready = alive
 
     if alive:
         return {
@@ -137,7 +141,8 @@ def hello():
     return {
         "hostname": HOSTNAME,
         "calls": calls,
-        "version": VERSION
+        "version": VERSION,
+        "uptime": time() - STARTUP_TIME,
     }
 
 
@@ -150,6 +155,7 @@ def config():
     response = {
         "hostname": HOSTNAME,
         "calls": calls,
+        "namespace": NAMESPACE,
         "build": {
             "version": VERSION,
             "date": VERSION_DATE
