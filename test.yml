@@ -37,6 +37,21 @@ spec:
               port: http
             initialDelaySeconds: 3
             periodSeconds: 3
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            runAsUser: 568
+            runAsGroup: 568
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
+      securityContext:
+        fsGroup: 568
+        fsGroupChangePolicy: OnRootMismatch
 ---
 apiVersion: v1
 kind: Service
