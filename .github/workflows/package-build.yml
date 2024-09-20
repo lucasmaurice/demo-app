@@ -12,6 +12,7 @@ on:
       - README.md
       - LICENSE
       - .github/**
+      - .gitignore
 
 jobs:
   push-store-image:
@@ -30,7 +31,7 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
-          context: app/
-          file: ./Dockerfile
+          context: ./app
+          file: ./app/Dockerfile
           push: true
           tags: ${{ env.IMAGE_NAME }}:latest,${{ env.IMAGE_NAME }}:${{ github.sha }}
