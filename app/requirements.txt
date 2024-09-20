@@ -1,4 +1,4 @@
-flask
-dnspython
-requests
-pyyaml
+Flask==3.0.3
+dnspython==2.6.1
+requests==2.32.3
+PyYAML==6.0.2
