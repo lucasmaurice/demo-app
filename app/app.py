@@ -1,3 +1,4 @@
+import concurrent.futures
 from flask import Flask, request
 from requests import get, exceptions as req_exceptions
 from dns import resolver
@@ -48,17 +49,28 @@ PORT = int(args.port)
 STORAGE_PATH = args.storage
 
 
+# Fetch a node from the SRV record
+def fetchNode(srv):
+    url = f"http://{srv.target.to_text()}:{srv.port}/me?ignore"
+    response = get(url, timeout=0.5)
+    if response.status_code == 200:
+        return response.json()
+    return None
+
+
 # Get the others nodes from SRV records
 def getNodes():
     out = []
     if NAMESPACE is None:
         return out
 
-    for srv in resolver.resolve(f"http.tcp.demo-headless.{NAMESPACE}.svc.cluster.local", "SRV", lifetime=.5):
-        print(f" * Found SRV record: {srv.target.to_text()}:{srv.port}")
-        data = get("http://" + srv.target.to_text() + ":" + str(srv.port) + "/me?ignore", timeout=.5)
-        if data.status_code == 200:
-            out.append(data.json())
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = {executor.submit(fetchNode, srv): srv for srv in resolver.resolve(f"http.tcp.demo-headless.{NAMESPACE}.svc.cluster.local", "SRV", lifetime=.5)}
+
+        for future in concurrent.futures.as_completed(futures):
+            result = future.result()
+            if result is not None:
+                out.append(result)
 
     return out
 
