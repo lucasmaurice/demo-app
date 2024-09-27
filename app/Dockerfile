@@ -15,9 +15,10 @@ WORKDIR /app
 COPY requirements.txt /app
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY ./app.py /app/app.py
+COPY ./app.py /app
+COPY ./gunicorn.conf.py /app
 
 RUN echo "${BUILD_VERSION}" >> /app/BUILD && echo "${BUILD_DATE}" >> /app/BUILD
 
 EXPOSE 8080
-CMD ["python", "app.py"]
+CMD ["python", "-m" ,"gunicorn", "app:app"]

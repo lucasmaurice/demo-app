@@ -7,13 +7,7 @@ from signal import raise_signal, SIGINT
 from socket import gethostname
 from yaml import dump
 from time import time
-from argparse import ArgumentParser
 
-app = Flask(__name__)
-
-# get the host and port from the environment
-HOSTNAME = gethostname()
-STARTUP_TIME = time()
 
 # Configure the version file
 try:
@@ -24,6 +18,13 @@ except FileNotFoundError:
 
 VERSION = version_file[0].strip()
 VERSION_DATE = version_file[1].strip()
+
+HOSTNAME = gethostname()
+STARTUP_TIME = time()
+HOST = getenv("HOST", "0.0.0.0")
+PORT = int(getenv("PORT", "8080"))
+STORAGE_PATH = getenv("STORAGE", None)
+
 
 # Try to get the Kubernetes namespace
 try:
@@ -36,17 +37,6 @@ except FileNotFoundError:
 calls = 0
 ready = True
 alive = True
-
-parser = ArgumentParser(prog='kube-demo-tool', description='A tool to for demonstrate and test some Kubernetes features.')
-parser.add_argument('--host', help='The host to bind the service to.', default=getenv("HOST", "0.0.0.0"))
-parser.add_argument('--port', help='The port to bind the service to.', default=getenv("PORT", "8080"))
-parser.add_argument('--storage', help="Specify a path to enable the storage feature.", default=None)
-
-args = parser.parse_args()
-
-HOST = args.host
-PORT = int(args.port)
-STORAGE_PATH = args.storage
 
 
 # Fetch a node from the SRV record
@@ -88,6 +78,9 @@ def prepareStorage():
         except Exception as e:
             print(f" * Error while preparing storage: {e}")
             exit(1)
+
+
+app = Flask(__name__)
 
 
 # Health endpoint - ready
@@ -233,9 +226,11 @@ def sync_test():
 
     request_time = time()
 
+    TEXT = f"Request at {request_time}\n"
+
     # Write the data to the file
     with open(STORAGE_PATH, "a") as f:
-        f.write(f"Request at {request_time}\n")
+        f.write(TEXT)
         f.close()
 
     # Read the data from the others nodes in parallel
@@ -248,11 +243,11 @@ def sync_test():
     for node in data:
         if "last_line" not in node:
             response[node["hostname"]] = "No data"
-        elif node["last_line"] != "Request at " + str(request_time):
-            response[node["hostname"]] = "Out of sync"
+        elif node["last_line"] != TEXT:
+            response[node["hostname"]] = "Out of sync: " + node["last_line"]
         else:
             response[node["hostname"]] = "In sync"
-
+    response["written"] = TEXT
     response["response_time"] = response_time
 
     return dump(response), 200, {"Content-Type": "application/json"}

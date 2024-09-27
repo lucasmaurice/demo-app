@@ -35,21 +35,23 @@ spec:
         - name: storage
           persistentVolumeClaim:
             claimName: demo-app-pvc
+        - name: tmp
+          emptyDir: {}
       containers:
         - name: app
           image: ghcr.io/lucasmaurice/kube_demo_1:latest
           imagePullPolicy: Always
-          args:
-            - python
-            - /app/app.py
-            - --storage
-            - /data/file.txt
+          env:
+            - name: STORAGE
+              value: /data/file.txt
           ports:
             - containerPort: 8080
               name: http
           volumeMounts:
             - name: storage
               mountPath: /data
+            - name: tmp
+              mountPath: /tmp
           readinessProbe:
             httpGet:
               path: /healthz/ready
